@@ -1,0 +1,127 @@
+﻿<form class="mb-5">
+    <div class="form-group">
+        <label for="make">Car Make:</label>
+        <select class="form-control" id="make" name="make"></select>
+    </div>
+    <div class="form-group">
+        <label for="year">Manufacture Year:</label>
+        <input type="number" step="1" class="form-control" id="year" name="year" />
+    </div>
+    <div class="form-group">
+        <label for="vehicleType">Vehicle Type:</label>
+        <select class="form-control" id="vehicleType" name="vehicleType"></select>
+    </div>
+    <button id="Search" type="button" onclick="GetCarModels()" class="btn btn-primary mt-3 mp-2">Search</button>
+</form>
+
+<table id="ModelTable" class="display mt-5" style="width:100%">
+    <thead>
+        <tr>
+            <th>Model Name</th>
+            <th>Model ID</th>
+            <th>Make Name</th>
+            <th>Make ID</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script>
+
+    $(document).ready(function () {
+        var dataTable = $('#ModelTable').DataTable();
+        $('#make').select2({
+            placeholder: "Select a Car Make",
+            allowClear: true,
+            width: '100%'
+        });
+        $('#vehicleType').select2({
+            placeholder: "Select a  vehicle Type",
+            allowClear: true,
+            width: '100%'
+        });
+        $.ajax({
+            url: '@Url.Action("GetAllMakes", "Vehicles")',
+            method: "GET",
+            success: function (response) {
+                if (response.isSuccess) {
+                    $('#make').append('<option value="">Select a Maker</option>');
+                    $.each(response.result, function (index, make) {
+                        $('#make').append('<option value="' + make.make_ID + '">' + make.make_Name + '</option>');
+                    });
+                } else {
+                    alert("Error: " + response.errorMessage);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error occurred: " + error);
+            }
+        });
+
+        $('#make').change(function () {
+            var makeId = $(this).val();
+
+            if (makeId) {
+                $('#vehicleType').empty();
+                $('#vehicleType').append('<option value="">Loading...</option>');
+                $.ajax({
+                    url: '@Url.Action("GetVehicleTypes", "Vehicles")?makerId=' + makeId,
+                    method: "GET",
+                    success: function (response) {
+                        if (response.isSuccess) {
+                            $('#vehicleType').empty();
+                            $('#vehicleType').append('<option value="">Select a Vehicle Type</option>');
+                            $.each(response.result, function (index, vehicleType) {
+                                $('#vehicleType').append('<option value="' + vehicleType.vehicleTypeId + '">' + vehicleType.vehicleTypeName + '</option>');
+                            });
+                        } else {
+                            alert("Error: " + response.errorMessage);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error occurred: " + error);
+                    }
+                });
+            } else {
+                $('#vehicleType').empty();
+                $('#vehicleType').append('<option value="">Select a Vehicle Type</option>');
+            }
+        });
+    });
+
+    function GetCarModels() {
+
+        var makeId = $("#make").val();
+        var year = $("#year").val();
+
+        if (!makeId || !year) {
+            alert("Please select both car make and year.");
+            return;
+        }
+        var dataTable = $('#ModelTable').DataTable();
+
+        $.ajax({
+            url: '@Url.Action("GetCarModels", "Vehicles")?makerId=' + makeId + '&year=' + year,
+            method: "GET",
+            success: function (response) {
+                if (response.isSuccess) {
+                    dataTable.clear();
+                    console.table(response.result);
+                    $.each(response.result, function (index, model) {
+                        dataTable.row.add([
+                            model.model_Name,
+                            model.model_ID,
+                            model.make_Name,
+                            model.make_ID
+                        ]).draw(false);
+                    });
+                } else {
+                    alert("Error: " + response.errorMessage);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error occurred: " + error);
+            }
+        });
+    }
+</script>
